@@ -74,7 +74,7 @@ class ConwaysGameOfLife(Model):
         for x in range(width):
             # Posiciones de los 3 vecinos de la fila
             left_pos = ((x - 1) % width, prev_row)
-            center_pos = (x, prev_row)
+            center_pos = ((x) % width, prev_row)
             right_pos = ((x + 1) % width, prev_row)
 
             # Guardamos los agentes vecinos en el grid

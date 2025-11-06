@@ -25,7 +25,6 @@ class ConwaysGameOfLife(Model):
 
         # Inicializar las células en la fila superior (height-1)
         for cell in self.grid.all_cells:
-            # Asigna las coordenadas
             x, y = cell.coordinate
             init_state = (
                 Cell.ALIVE
@@ -43,6 +42,7 @@ class ConwaysGameOfLife(Model):
     def step(self):
         """Avanza una fila para cada step. Cada step actualiza la fila siguiente en base a
         los 3 vecinos de la fila anterior usando la tabla de reglas dada."""
+        # 
         width = self.grid.width
         height = self.grid.height
 
@@ -53,7 +53,7 @@ class ConwaysGameOfLife(Model):
             # Posiciones de los 3 vecinos de la fila
             above = (y + 1) % height # fila de arriba (torus)
             left_pos = ((x - 1) % width, above)
-            center_pos = (x, above)
+            center_pos = ((x) % width, above)
             right_pos = ((x + 1) % width, above)
 
             # Obtener estados de los vecinos (0 o 1)
