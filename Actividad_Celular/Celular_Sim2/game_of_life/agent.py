@@ -37,7 +37,8 @@ class Cell(FixedAgent):
 
     # Calcular siguiente estado sólo a partir de los 3 vecinos de la fila de arriba
     def set_next_state(self, left_state, center_state, right_state):
-        # Asegurar valores 0 o 1
+        """Calculate next state based on the three neighbors above"""
+        # Convertir estados a patrón de cadena
         a = 1 if left_state == self.ALIVE else 0
         b = 1 if center_state == self.ALIVE else 0
         c = 1 if right_state == self.ALIVE else 0
@@ -45,12 +46,12 @@ class Cell(FixedAgent):
 
         # Busca en la tabla de reglas el siguiente estado
         if pattern in ["111", "101", "010", "000"]:
-            self.next_state = self.DEAD
+            self._next_state = self.DEAD
         else:
-            self.next_state = self.ALIVE
+            self._next_state = self.ALIVE
 
     # Actualiza el estado de la célula al siguiente estado calculado
     def assume_state(self):
-        if self.next_state is not None:
-            self.state = self.next_state
-            self.next_state = None
+        if self._next_state is not None:
+            self.state = self._next_state
+            self._next_state = None
