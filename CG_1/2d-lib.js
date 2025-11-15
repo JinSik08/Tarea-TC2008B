@@ -1,8 +1,8 @@
 /*
- * Functions for 2D transformations
+ * Funciones para transformaciones 2D
  *
- * Gilberto Echeverria
- * 2024-11-04
+ * JinSik Yoon, A01026630
+ * 14 de noviembre de 2025
  */
 
 class V2 {
