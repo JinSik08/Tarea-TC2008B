@@ -1,4 +1,6 @@
 from mesa.discrete_space import CellAgent, FixedAgent
+# CellAgent: Agente que puede moverse entre celdas (agente aspiradora)
+# FixedAgent: Agente que permanece fijo en una celda (obstáculo, suciedad, estación de recarga)
 
 class ObstacleAgent(FixedAgent):
     """
@@ -18,7 +20,7 @@ class DirtyPatch(FixedAgent):
     def __init__(self, model, cell, dirty=True):
         super().__init__(model)
         self.cell = cell
-        self.dirty = dirty
+        self.dirty = dirty # True si está sucia, False si está limpia
 
     def step(self):
         pass
@@ -53,13 +55,19 @@ class RandomAgent(CellAgent):
         super().__init__(model)
         self.cell = cell
         self.battery = battery
+        self.move_count = 0
+        self.cleaned_cells = 0
+        self.visited = set()
+        if hasattr(self.cell, "coordinate"):
+            self.visited.add(self.cell.coordinate)
 
+    # @property permite acceder al método como si fuera un atributo
     @property
     def at_charger(self):
         """
-        Verifica si el agente está localizado en la estación de batería
+        Verifica si el agente está localizado en mi estación de recarga
         """
-        return self.cell.coordinate == self.model.charger_location
+        return any(isinstance(a, ChargingStation) for a in self.cell.agents)
     
     def neighbors_without_obstacles(self):
         """
@@ -86,48 +94,83 @@ class RandomAgent(CellAgent):
         Verifica si el agente necesita recargar
         """
         distancia = self.distance_to_charger()
-        return self.battery <= 20 or self.battery <= distancia + 5
+        return self.battery <= 30 or self.battery <= distancia + 5
+    
+    def movement(self, new_cell):
+        """Actualizar posición y métricas al moverse a new_cell (Cell object)"""
+        if new_cell is None:
+            return
+        self.cell = new_cell
+        self.battery = max(0, self.battery - 1)
+        self.move_count += 1
+        self.model.move_count += 1
+        if hasattr(self.model, "move_count"):
+            self.model.move_count += 1
+        if hasattr(self.cell, "coordinate"):
+            self.visited.add(self.cell.coordinate)
+
+    def move_towards_charger(self):
+        """Selecciona la vecina que reduce la distancia Manhattan al cargador y se mueve"""
+        freeCell = self.neighbors_without_obstacles()
+        if len(freeCell) == 0:
+            return
+        best = None
+        best_dist = None
+        for c in freeCell:
+            d = self.distance_to_charger(c)
+            if best_dist is None or d < best_dist:
+                best_dist = d
+                best = c
+        if best is not None:
+            self.movement(best)
     
     def move(self):
         """
-        Mueve el agente a una celda vecina aleatoria donde no hay obstaculos
+        Mueve el agente con prioridad:
+        1) Si necesita recargar (o batería 0) y no está en cargador -> ir al cargador
+        2) Vecina sucia
+        3) Vecina limpia no visitada
+        4) Vecina aleatoria sin obstáculo
         """
+
+        # prioridad máxima: volver al cargador si hace falta
+        if (self.need_to_charge() or self.battery == 0) and not self.at_charger:
+            self.move_towards_charger()
+            return
+        
         freeCell = self.neighbors_without_obstacles()
         if len(freeCell) == 0:
             return
         
-        """
-        Si necesita recargar, se selecciona la celda más cercana a la estación
-        """
-        actual_distance = self.distance_to_charger()
-        close_cells = freeCell.select(
-            lambda cell: self.distance_to_charger(cell) < actual_distance
+        # 1) Vecinas sucias
+        dirty_neighbors = freeCell.select(
+            lambda cell: any(isinstance(a, DirtyPatch) and a.dirty for a in cell.agents)
         )
+        if len(dirty_neighbors) > 0:
+            new_cell = dirty_neighbors.select_random_cell()
+        else:
+            # 2) Vecinas limpias no visitadas
+            unvisited_clean = freeCell.select(
+                lambda cell: not any(isinstance(a, DirtyPatch) and a.dirty for a in cell.agents)
+                             and (not hasattr(cell, "coordinate") or cell.coordinate not in self.visited)
+            )
+            if len(unvisited_clean) > 0:
+                new_cell = unvisited_clean.select_random_cell()
+            else:
+                # 3) fallback aleatorio
+                new_cell = freeCell.select_random_cell()
 
-        """
-        Si hay celdas más cercanas a la estación, se selecciona una de ellas aleatoriamente.
-        """
-        target_cells = close_cells if len(close_cells) > 0 else freeCell
-        new_cell = target_cells.select_random_cell()
         if new_cell is None:
             return
-        
-        """Calcula la bateria restante y mueve el agente"""
-        self.cell = new_cell
-        self.battery -= 1
-        self.model.move_count += 1
+
+        # Actualizar posición y métricas
+        self.movement(new_cell)
 
     def explore(self):
         """
         El agente explora moviendose a una celda vecina aleatoria
         """
-        freeCells = self.neighbors_without_obstacles()
-        if len(freeCells) == 0:
-            return
-        new_cell = freeCells.select_random_cell()
-        self.cell = new_cell
-        self.battery -= 1
-        self.model.move_count += 1
+        self.move()
 
     def clean(self):
         """
@@ -140,8 +183,8 @@ class RandomAgent(CellAgent):
         if dirty_patches:
             dirty_patch = dirty_patches[0]
             dirty_patch.dirty = False
-            self.battery -= 1
-            self.model.remaining_dirty_cells -= 1
+            self.battery = max(0, self.battery - 1)
+            self.model.remaining_dirty_cells = max(0, self.model.remaining_dirty_cells - 1)
             self.model.cleaned_cells += 1
 
     def charge(self):

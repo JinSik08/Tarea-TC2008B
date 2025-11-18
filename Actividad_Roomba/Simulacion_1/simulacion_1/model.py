@@ -1,7 +1,8 @@
-from mesa import Model
-from mesa.datacollection import DataCollector # DataCollector para recolectar los stats del modelo
-from mesa.discrete_space import OrthogonalMooreGrid
+from mesa import Model # Importa la clase base Model de Mesa
+from mesa.datacollection import DataCollector # DataCollector para recolectar las estadísticas
+from mesa.discrete_space import OrthogonalMooreGrid # Importa la cuadrícula ortogonal de Moore
 
+# Importamos los agentes definidos
 from .agent import RandomAgent, ObstacleAgent, DirtyPatch, ChargingStation
 
 class RandomModel(Model):
@@ -30,7 +31,8 @@ class RandomModel(Model):
         # Métricas del modelo
         self.actual_step = 0
         self.move_count = 0
-        self.time_to_clean = None
+        self.time_to_clean = None # Se guarda el paso en que se limpió todo
+        self.cleaned_cells = 0
 
         # Coordinada fija de la estación de recarga
         self.charger_location = (1, 1)
@@ -41,6 +43,7 @@ class RandomModel(Model):
         )
         self.charger = ChargingStation(self, cell = charger_cell)
 
+        # Total de celdas en la cuadrícula
         total_cells = width * height
 
         # Crear obstáculos en la cuadrícula
@@ -64,8 +67,7 @@ class RandomModel(Model):
 
         # Crear celdas sucias en la cuadrícula
         free_for_dirty = [
-            cell 
-            for cell in self.grid.all_cells
+            cell for cell in self.grid.all_cells
             if (cell is not charger_cell)
             and not any(isinstance(a, ObstacleAgent) for a in cell.agents)
         ]
@@ -100,12 +102,9 @@ class RandomModel(Model):
                 "Step": lambda m: m.actual_step,
                 "Remaining Dirty Cells": lambda m: m.remaining_dirty_cells,
                 "CleanPercent": lambda m: (
-                    100.0
-                    * (m.total_floor_cells - m.remaining_dirty_cells)
-                    / m.total_floor_cells
-                )
-                if m.total_floor_cells > 0 
-                else 0.0,
+                    0.0 if m.initial_dirty_cells == 0
+                    else 100.0 * (m.initial_dirty_cells - m.remaining_dirty_cells) / m.initial_dirty_cells
+                ),
                 "Movements": lambda m: m.move_count,
                 "BatteryLevel": lambda m: m.num_agent.battery,
             }
