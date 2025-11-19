@@ -138,6 +138,11 @@ class RandomModel(Model):
             model_reporters[f"Battery_{i}"] = lambda m, idx=i: (
                 m.cleaners[idx].battery if idx < len(m.cleaners) else 0
             )
+        # Agregar movimientos individuales para cada agente
+        for i in range(self.num_agents):
+            model_reporters[f"Movement_{i}"] = lambda m, idx=i: (
+                m.cleaners[idx].move_count if idx < len(m.cleaners) else 0
+            )
         
         self.datacollector = DataCollector(
             model_reporters=model_reporters,

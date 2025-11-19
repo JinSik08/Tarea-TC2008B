@@ -90,7 +90,7 @@ space_component = make_space_component(
         post_process=post_process_space,
 )
 
-def plot_component(model):
+def plot_componentBattery(model):
     import matplotlib.pyplot as plt # Importar matplotlib
     
     model_data = model.datacollector.get_model_vars_dataframe()
@@ -114,9 +114,38 @@ def plot_component(model):
                    label=f"Agente {i+1}", 
                    color=colors[i % len(colors)])
     
-    ax.set_xlabel('Step')
+    ax.set_title('Porcentaje de limpieza y batería por Agente', fontsize=32)
+    ax.set_xlabel('Step', fontsize=14)
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.9))
     ax.set_ylim(0, 100) # Limitar el eje Y de 0 a 100
+    
+    return solara.FigureMatplotlib(fig)
+
+def plot_componentMovement(model):
+    import matplotlib.pyplot as plt # Importar matplotlib
+    
+    model_data = model.datacollector.get_model_vars_dataframe()
+    
+    if model_data.empty:
+        return solara.Markdown("**No hay datos aún**")
+    
+    fig, ax = plt.subplots(figsize=(15, 10))
+    
+    # Movimientos de cada agente
+    colors = ["red", "green", "orange", "purple", "brown", "pink", "gray", "cyan", "magenta", "yellow"]
+    for i in range(model.num_agents):
+        movement_col = f"Movement_{i}"
+        if movement_col in model_data.columns:
+            ax.plot(model_data.index, model_data[movement_col], 
+                   label=f"Agente {i+1}", 
+                   color=colors[i % len(colors)])
+    
+    # En tamaño más grande
+    ax.set_title('Movimientos por Agente', fontsize=32)
+    ax.set_xlabel('Step', fontsize=14)
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.9))
+    # Quiero modelar el eje Y basando en el current_step
+    ax.set_ylim(0, model.actual_step + 10) # Limitar el eje Y de 0 a current_step + 10
     
     return solara.FigureMatplotlib(fig)
 
@@ -174,7 +203,7 @@ def stats_component(model):
 # Página de visualización del modelo
 page = SolaraViz(
     model,
-    components=[space_component, plot_component, stats_component],
+    components=[space_component, plot_componentBattery, stats_component, plot_componentMovement],
     model_params=model_params,
     name="Simulación 2: Múltiples agentes Aspiradora (Jin Sik - A01026630)",
 )
