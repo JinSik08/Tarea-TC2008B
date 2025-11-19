@@ -69,7 +69,7 @@ model_params = {
     "num_agents": Slider("Number of Agents", 3, 1, 10, 1),
     "dirty_percent": Slider("Dirty %", 0.4, 0.0, 1.0, 0.05),
     "obstacle_percent": Slider("Obstacle %", 0.1, 0.0, 0.5, 0.05),
-    "max_steps": Slider("Max Steps", 500, 50, 5000, 50),
+    "max_steps": Slider("Max Steps", 500, 50, 50000, 50),
 }
 
 # Función para crear una instancia del modelo
